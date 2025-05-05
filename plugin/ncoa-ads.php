@@ -75,6 +75,19 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-ncoa-ads.php';
  */
 function run_ncoa_ads() {
 
+   // Define update method from GitHub repo
+   if (is_admin()) {
+      define('GH_REQUEST_URI', 'https://api.github.com/repos/%s/%s/releases');
+      define('GHPU_USERNAME', 'YOUR_GITHUB_USERNAME');
+      define('GHPU_REPOSITORY', 'YOUR_GITHUB_REPOSITORY_NAME');
+      define('GHPU_AUTH_TOKEN', 'YOUR_GITHUB_ACCESS_TOKEN');
+  
+      include_once plugin_dir_path(__FILE__) . '/GhPluginUpdater.php';
+  
+      $updater = new GhPluginUpdater(__FILE__);
+      $updater->init();
+  }
+
 	$plugin = new Ncoa_Ads();
 	$plugin->run();
 
