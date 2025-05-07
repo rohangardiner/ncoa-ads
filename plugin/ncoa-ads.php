@@ -26,8 +26,8 @@
  */
 
 // If this file is called directly, abort.
-if ( ! defined( 'WPINC' ) ) {
-	die;
+if (! defined('WPINC')) {
+   die;
 }
 
 /**
@@ -35,67 +35,69 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'NCOA_ADS_VERSION', '1.0.0' );
-define( 'NCOA_ADS_ASSETS', plugin_dir_url( __FILE__ ).'public/assets' );
+define('NCOA_ADS_VERSION', '1.0.0');
+define('NCOA_ADS_ASSETS', plugin_dir_url(__FILE__) . 'public/assets');
+define('NCOA_ADS_DIR', plugin_dir_url(__FILE__));
 
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-ncoa-ads-activator.php
  */
-function activate_ncoa_ads() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-ncoa-ads-activator.php';
-	Ncoa_Ads_Activator::activate();
+function activate_ncoa_ads()
+{
+   require_once plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads-activator.php';
+   Ncoa_Ads_Activator::activate();
 }
 
 /**
  * The code that runs during plugin deactivation.
  * This action is documented in includes/class-ncoa-ads-deactivator.php
  */
-function deactivate_ncoa_ads() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-ncoa-ads-deactivator.php';
-	Ncoa_Ads_Deactivator::deactivate();
+function deactivate_ncoa_ads()
+{
+   require_once plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads-deactivator.php';
+   Ncoa_Ads_Deactivator::deactivate();
 }
 
-register_activation_hook( __FILE__, 'activate_ncoa_ads' );
-register_deactivation_hook( __FILE__, 'deactivate_ncoa_ads' );
+register_activation_hook(__FILE__, 'activate_ncoa_ads');
+register_deactivation_hook(__FILE__, 'deactivate_ncoa_ads');
 
 /**
  * The core plugin class that is used to define internationalization,
  * admin-specific hooks, and public-facing site hooks.
  */
-require plugin_dir_path( __FILE__ ) . 'includes/class-ncoa-ads.php';
+require plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads.php';
 
-function get_random_image_from_directory($directory) {
-    // Ensure the directory exists
-    if (!is_dir($directory)) {
-      print('not dir');
-        return false; // Return false if the directory doesn't exist
-    }
+function get_random_image_from_directory($directory)
+{
+   // Ensure the directory exists
+   if (!is_dir($directory)) {
+      return false; // Return false if the directory doesn't exist
+   }
 
-    print('got to function');
+   // Get all files in the directory
+   $files = array_diff(scandir($directory), array('.', '..'));
 
-    // Get all files in the directory
-    $files = array_diff(scandir($directory), array('.', '..'));
+   // Filter only image files (optional, based on extensions)
+   $image_files = array_filter($files, function ($file) use ($directory) {
+      $file_path = $directory . DIRECTORY_SEPARATOR . $file;
+      return is_file($file_path) && preg_match('/\.(jpg|jpeg|png|gif)$/i', $file);
+   });
 
-    // Filter only image files (optional, based on extensions)
-    $image_files = array_filter($files, function($file) use ($directory) {
-        $file_path = $directory . DIRECTORY_SEPARATOR . $file;
-        return is_file($file_path) && preg_match('/\.(jpg|jpeg|png|gif)$/i', $file);
-    });
+   // If no image files are found, return false
+   if (empty($image_files)) {
+      return false;
+   }
 
-    // If no image files are found, return false
-    if (empty($image_files)) {
-        return false;
-    }
+   // Pick a random image
+   $random_file = array_rand($image_files);
 
-    // Pick a random image
-    $random_file = array_rand($image_files);
-
-    // Return the full path to the random image
-    return $directory . DIRECTORY_SEPARATOR . $image_files[$random_file];
+   // Return the full path to the random image
+   return $directory . DIRECTORY_SEPARATOR . $image_files[$random_file];
 }
 
-function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
+function display_ad($ad_type = 'accsc', $cookie_timeout = 60)
+{
    // Use ad type as array index to get the target URL for the ad
    $target = array(
       'accsc' => 'https://accsc.com.au/',
@@ -111,9 +113,9 @@ function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
 
    // Fallback if no image is found
    if (!$random_image) {
-       $random_image = NCOA_ADS_ASSETS . '/default-placeholder.png';
+      $random_image = NCOA_ADS_ASSETS . '/default-placeholder.png';
    } else {
-       $random_image = plugin_dir_url(__FILE__) . 'public/assets/' . $ad_type . '/' . basename($random_image);
+      $random_image = plugin_dir_url(__FILE__) . 'public/assets/' . $ad_type . '/' . basename($random_image);
    }
 
    return '
@@ -134,10 +136,11 @@ function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
  *
  * @since    1.0.0
  */
-function run_ncoa_ads() {
+function run_ncoa_ads()
+{
 
-	$plugin = new Ncoa_Ads();
-	$plugin->run();
+   $plugin = new Ncoa_Ads();
+   $plugin->run();
 
    // Get the ncoaads_cookie_timeout option from db, returns an array
    $cookie_timeout = get_option('ncoaads_cookie_timeout');
@@ -146,10 +149,32 @@ function run_ncoa_ads() {
    // Show a display ad on non-admin pages, passing college type and cookie timeout set in WP Admin options
    if (!is_admin()) {
       echo display_ad(
-         $ad_type['ncoaads_field_adtype'], 
+         $ad_type['ncoaads_field_adtype'],
          $cookie_timeout['ncoaads_field_cookie_timeout']
       );
    }
 
+   // Check for plugin updates
+   add_action('init', 'github_plugin_updater_test_init');
+   function github_plugin_updater_test_init() {
+      include_once NCOA_ADS_DIR . 'includes/class-ncoa-ads-updater.php';
+      define('WP_GITHUB_FORCE_UPDATE', true);
+      if (is_admin()) {
+         $config = array(
+            'slug' => plugin_basename(__FILE__), // this is the slug of your plugin
+            'proper_folder_name' => 'ncoa-ads', // this is the name of the folder your plugin lives in
+            'api_url' => 'https://api.github.com/repos/rohangardiner/ncoa-ads', // the GitHub API url of your GitHub repo
+            'raw_url' => 'https://raw.github.com/rohangardiner/ncoa-ads/main', // the GitHub raw url of your GitHub repo
+            'github_url' => 'https://github.com/rohangardiner/ncoa-ads', // the GitHub url of your GitHub repo
+            'zip_url' => 'https://github.com/rohangardiner/ncoa-ads/release/ncoa-ads.zip', // the zip url of the GitHub repo
+            'sslverify' => true, // whether WP should check the validity of the SSL cert when getting an update, see https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/2 and https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/4 for details
+            'requires' => '3.0', // which version of WordPress does your plugin require?
+            'tested' => '3.3', // which version of WordPress is your plugin tested up to?
+            'readme' => 'README.md', // which file to use as the readme for the version number
+            'access_token' => '', // Access private repositories by authorizing under Plugins > GitHub Updates when this example plugin is installed
+         );
+         new WP_GitHub_Updater($config);
+      }
+   }
 }
 run_ncoa_ads();
