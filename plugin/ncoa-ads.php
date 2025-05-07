@@ -36,6 +36,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Rename this for your plugin and update it as you release new versions.
  */
 define( 'NCOA_ADS_VERSION', '1.0.0' );
+define( 'NCOA_ADS_ASSETS', plugin_dir_url( __FILE__ ).'public/assets' );
 
 /**
  * The code that runs during plugin activation.
@@ -64,6 +65,66 @@ register_deactivation_hook( __FILE__, 'deactivate_ncoa_ads' );
  */
 require plugin_dir_path( __FILE__ ) . 'includes/class-ncoa-ads.php';
 
+function get_random_image_from_directory($directory) {
+    // Ensure the directory exists
+    if (!is_dir($directory)) {
+      print('not dir');
+        return false; // Return false if the directory doesn't exist
+    }
+
+    print('got to function');
+
+    // Get all files in the directory
+    $files = array_diff(scandir($directory), array('.', '..'));
+
+    // Filter only image files (optional, based on extensions)
+    $image_files = array_filter($files, function($file) use ($directory) {
+        $file_path = $directory . DIRECTORY_SEPARATOR . $file;
+        return is_file($file_path) && preg_match('/\.(jpg|jpeg|png|gif)$/i', $file);
+    });
+
+    // If no image files are found, return false
+    if (empty($image_files)) {
+        return false;
+    }
+
+    // Pick a random image
+    $random_file = array_rand($image_files);
+
+    // Return the full path to the random image
+    return $directory . DIRECTORY_SEPARATOR . $image_files[$random_file];
+}
+
+function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
+   // Use ad type as array index to get the target URL for the ad
+   $target = array(
+      'accsc' => 'https://accsc.com.au/',
+      'actac' => 'https://actac.com.au/',
+      'acfpt' => 'https://acfpt.com.au/'
+   );
+
+   // Define the directory for the ad images
+   $image_directory = plugin_dir_path(__FILE__) . 'public/assets/' . $ad_type;
+
+   // Get a random image from the directory
+   $random_image = get_random_image_from_directory($image_directory);
+
+   // Fallback if no image is found
+   if (!$random_image) {
+       $random_image = NCOA_ADS_ASSETS . '/default-placeholder.png';
+   } else {
+       $random_image = plugin_dir_url(__FILE__) . 'public/assets/' . $ad_type . '/' . basename($random_image);
+   }
+
+   return '
+      <div id="ncoadisplay" data-time=' . $cookie_timeout . '>
+         <img style="display:none;" loading="lazy" src="' . $random_image . '">
+         <a id="ncoadisplay-clickarea" href="' . $target[$ad_type] . '"></a>
+         <button id="ncoadisplay-close">&times;</button>
+      </div>
+   ';
+}
+
 /**
  * Begins execution of the plugin.
  *
@@ -75,10 +136,20 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-ncoa-ads.php';
  */
 function run_ncoa_ads() {
 
-   // Execution
-
 	$plugin = new Ncoa_Ads();
 	$plugin->run();
+
+   // Get the ncoaads_cookie_timeout option from db, returns an array
+   $cookie_timeout = get_option('ncoaads_cookie_timeout');
+   $ad_type = get_option('ncoaads_adtype');
+
+   // Show a display ad on non-admin pages, passing college type and cookie timeout set in WP Admin options
+   if (!is_admin()) {
+      echo display_ad(
+         $ad_type['ncoaads_field_adtype'], 
+         $cookie_timeout['ncoaads_field_cookie_timeout']
+      );
+   }
 
 }
 run_ncoa_ads();

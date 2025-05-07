@@ -2,3 +2,41 @@
  * All of the CSS for your public-facing functionality should be
  * included in this file.
  */
+
+ #ncoadisplay {
+   position: fixed;
+   bottom: 10%;
+   right: 10px;
+   background-color: #f0f0f0;
+   border-radius: 4px;
+   overflow: hidden;
+   z-index: 1000;
+   /* Ensure it's on top */
+   max-width: 200px;
+   /* height: 960px; */
+   /* box-shadow: 1px 2px 20px -2px rgba(0,0,0,0.3); */
+}
+
+#ncoadisplay-clickarea {
+   position: absolute;
+   height: calc(100% - 24px);
+   bottom: 0;
+   z-index: 1001;
+   width: 100%;
+}
+
+#ncoadisplay-close {
+   position: absolute;
+   color: #333;
+   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+   border-radius: 2px;
+   top: 5px;
+   right: 5px;
+   cursor: pointer;
+   padding: 0 2px;
+   border: none;
+   background: none;
+   font-size: 20px;
+   font-weight: bold;
+   z-index: 1002;
+}
