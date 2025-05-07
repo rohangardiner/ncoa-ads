@@ -37,7 +37,6 @@ if (! defined('WPINC')) {
  */
 define('NCOA_ADS_VERSION', '1.0.0');
 define('NCOA_ADS_ASSETS', plugin_dir_url(__FILE__) . 'public/assets');
-define('NCOA_ADS_DIR', plugin_dir_url(__FILE__));
 
 /**
  * The code that runs during plugin activation.
@@ -157,7 +156,7 @@ function run_ncoa_ads()
    // Check for plugin updates
    add_action('init', 'github_plugin_updater_test_init');
    function github_plugin_updater_test_init() {
-      include_once NCOA_ADS_DIR . 'includes/class-ncoa-ads-updater.php';
+      require_once plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads-updater.php';
       define('WP_GITHUB_FORCE_UPDATE', true);
       if (is_admin()) {
          $config = array(
