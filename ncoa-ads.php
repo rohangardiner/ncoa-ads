@@ -8,17 +8,17 @@
  * registers the activation and deactivation functions, and defines a function
  * that starts the plugin.
  *
- * @link              https://https://ncoa.com.au/
+ * @link              https://ncoa.com.au/
  * @since             1.0.0
  * @package           Ncoa_Ads
  *
  * @wordpress-plugin
  * Plugin Name:       NCOA Ads
- * Plugin URI:        https://https://ncoa.com.au/
+ * Plugin URI:        https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
  * Version:           1.0.7
  * Author:            Rohan
- * Author URI:        https://https://ncoa.com.au//
+ * Author URI:        https://ncoa.com.au/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       ncoa-ads
@@ -147,6 +147,15 @@ function run_ncoa_ads() {
          $ad_type['ncoaads_field_adtype'],
          $cookie_timeout['ncoaads_field_cookie_timeout']
       );
+   }
+
+   // Link to settings page from plugins screen
+   add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'add_action_links');
+   function add_action_links($links) {
+      $mylinks = array(
+         '<a href="' . admin_url('options-general.php?page=ncoaads') . '">Settings</a>',
+      );
+      return array_merge($links, $mylinks);
    }
 
    // Check for plugin updates
