@@ -20,7 +20,7 @@
  * @subpackage Ncoa_Ads/admin
  * @author     Rohan <rgardiner@actac.com.au>
  */
-class Ncoa_Ads_Admin
+class Ncoa_Ads_Public
 {
 
    /**
