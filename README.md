@@ -1,6 +1,6 @@
 === Plugin Name ===
 Contributors: rohangardiner
-Donate link: https://https://ncoa.com.au//
+Donate link: https://ncoa.com.au/
 Tags: comments, spam
 Requires at least: 3.0.1
 Tested up to: 3.4
