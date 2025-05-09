@@ -101,6 +101,7 @@ class Ncoa_Ads_Admin {
 // Plugin Options page
 function ncoaads_settings_init() {
    // Register a new setting for "ncoaads" page.
+   register_setting('ncoaads', 'ncoaads_enable_plugin');
    register_setting('ncoaads', 'ncoaads_adtype');
    register_setting('ncoaads', 'ncoaads_orientation');
    register_setting('ncoaads', 'ncoaads_cookie_timeout');
@@ -113,7 +114,20 @@ function ncoaads_settings_init() {
       'ncoaads'
    );
 
-   // Register a new field in the "ncoaads_section_developers" section, inside the "ncoaads" page.
+   // Add each setting field to the "ncoaads_section_developers" section on the admin page
+   add_settings_field(
+   'ncoaads_field_enable_plugin',
+   __('Enable Plugin', 'ncoaads'),
+   'ncoaads_field_enable_plugin_cb',
+   'ncoaads',
+   'ncoaads_section_developers',
+   array(
+      'label_for'         => 'ncoaads_field_enable_plugin',
+      'class'             => 'ncoaads_row',
+      'ncoaads_custom_data' => 'custom',
+   )
+);
+
    add_settings_field(
       'ncoaads_field_adtype', // As of WP 4.6 this value is used only internally.
       // Use $args' label_for to populate the id inside the callback.
@@ -188,6 +202,24 @@ function ncoaads_section_developers_callback($args) {
  *
  * @param array $args
  */
+
+ function ncoaads_field_enable_plugin_cb($args) {
+   // Get the value of the setting we've registered with register_setting()
+   $options = get_option('ncoaads_enable_plugin');
+   $checked = isset($options) && $options === '1' ? 'checked' : '';
+?>
+   <input
+      type="checkbox"
+      id="<?php echo esc_attr($args['label_for']); ?>"
+      name="ncoaads_enable_plugin"
+      value="1"
+      <?php echo $checked; ?> />
+   <label for="<?php echo esc_attr($args['label_for']); ?>">
+      <?php esc_html_e('Enable NCOA Ads on this website.', 'ncoaads'); ?>
+   </label>
+<?php
+}
+
 function ncoaads_field_adtype_cb($args) {
    // Get the value of the setting we've registered with register_setting()
    $options = get_option('ncoaads_adtype');
