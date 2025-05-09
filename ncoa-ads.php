@@ -16,7 +16,7 @@
  * Plugin Name:       NCOA Ads
  * Plugin URI:        https://https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
- * Version:           1.0.0
+ * Version:           1.0.1
  * Author:            Rohan
  * Author URI:        https://https://ncoa.com.au//
  * License:           GPL-2.0+
@@ -42,8 +42,7 @@ define('NCOA_ADS_ASSETS', plugin_dir_url(__FILE__) . 'public/assets');
  * The code that runs during plugin activation.
  * This action is documented in includes/class-ncoa-ads-activator.php
  */
-function activate_ncoa_ads()
-{
+function activate_ncoa_ads() {
    require_once plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads-activator.php';
    Ncoa_Ads_Activator::activate();
 }
@@ -52,8 +51,7 @@ function activate_ncoa_ads()
  * The code that runs during plugin deactivation.
  * This action is documented in includes/class-ncoa-ads-deactivator.php
  */
-function deactivate_ncoa_ads()
-{
+function deactivate_ncoa_ads() {
    require_once plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads-deactivator.php';
    Ncoa_Ads_Deactivator::deactivate();
 }
@@ -67,8 +65,7 @@ register_deactivation_hook(__FILE__, 'deactivate_ncoa_ads');
  */
 require plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads.php';
 
-function get_random_image_from_directory($directory)
-{
+function get_random_image_from_directory($directory) {
    // Ensure the directory exists
    if (!is_dir($directory)) {
       return false; // Return false if the directory doesn't exist
@@ -95,8 +92,7 @@ function get_random_image_from_directory($directory)
    return $directory . DIRECTORY_SEPARATOR . $image_files[$random_file];
 }
 
-function display_ad($ad_type = 'accsc', $cookie_timeout = 60)
-{
+function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
    // Use ad type as array index to get the target URL for the ad
    $target = array(
       'accsc' => 'https://accsc.com.au/',
@@ -126,6 +122,10 @@ function display_ad($ad_type = 'accsc', $cookie_timeout = 60)
    ';
 }
 
+function v101() {
+   return "1.0.0";
+}
+
 /**
  * Begins execution of the plugin.
  *
@@ -135,8 +135,7 @@ function display_ad($ad_type = 'accsc', $cookie_timeout = 60)
  *
  * @since    1.0.0
  */
-function run_ncoa_ads()
-{
+function run_ncoa_ads() {
 
    $plugin = new Ncoa_Ads();
    $plugin->run();
