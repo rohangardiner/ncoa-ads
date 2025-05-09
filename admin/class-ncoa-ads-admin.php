@@ -205,8 +205,8 @@ function ncoaads_section_developers_callback($args) {
 
  function ncoaads_field_enable_plugin_cb($args) {
    // Get the value of the setting we've registered with register_setting()
-   $options = get_option('ncoaads_enable_plugin');
-   $checked = isset($options) && $options === '1' ? 'checked' : '';
+   $options = get_option('ncoaads_enable_plugin', '1');
+   $checked = $options === '1' ? 'checked' : '';
 ?>
    <input
       type="checkbox"
