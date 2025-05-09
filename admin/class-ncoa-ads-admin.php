@@ -102,12 +102,13 @@ class Ncoa_Ads_Admin {
 function ncoaads_settings_init() {
    // Register a new setting for "ncoaads" page.
    register_setting('ncoaads', 'ncoaads_adtype');
+   register_setting('ncoaads', 'ncoaads_orientation');
    register_setting('ncoaads', 'ncoaads_cookie_timeout');
 
    // Register a new section in the "ncoaads" page.
    add_settings_section(
       'ncoaads_section_developers',
-      __('NCOA Ads Settings', 'ncoaads'),
+      __('Display Settings', 'ncoaads'),
       'ncoaads_section_developers_callback',
       'ncoaads'
    );
@@ -128,9 +129,21 @@ function ncoaads_settings_init() {
    );
 
    add_settings_field(
-      'ncoaads_field_cookie_timeout', // As of WP 4.6 this value is used only internally.
-      // Use $args' label_for to populate the id inside the callback.
-      __('Cookie Timeout', 'ncoaads'),
+      'ncoaads_field_orientation',
+      __('Orientation', 'ncoaads'),
+      'ncoaads_field_orientation_cb',
+      'ncoaads',
+      'ncoaads_section_developers',
+      array(
+         'label_for'         => 'ncoaads_field_orientation',
+         'class'             => 'ncoaads_row',
+         'ncoaads_custom_data' => 'custom',
+      )
+   );
+
+   add_settings_field(
+      'ncoaads_field_cookie_timeout',
+      __('Cookie Timeout (minutes)', 'ncoaads'),
       'ncoaads_field_cookie_timeout_cb',
       'ncoaads',
       'ncoaads_section_developers',
@@ -161,12 +174,12 @@ add_action('admin_init', 'ncoaads_settings_init');
  */
 function ncoaads_section_developers_callback($args) {
 ?>
-   <p id="<?php echo esc_attr($args['id']); ?>"><?php esc_html_e('Configure NCOA display ads', 'ncoaads'); ?></p>
+   <p id="<?php echo esc_attr($args['id']); ?>"><?php esc_html_e('Configure display settings for NCOA Ads', 'ncoaads'); ?></p>
 <?php
 }
 
 /**
- * Ad Type field callbakc function.
+ * field callback functions.
  *
  * WordPress has magic interaction with the following keys: label_for, class.
  * - the "label_for" key value is used for the "for" attribute of the <label>.
@@ -203,6 +216,26 @@ function ncoaads_field_adtype_cb($args) {
 <?php
 }
 
+function ncoaads_field_orientation_cb($args) {
+   // Get the value of the setting we've registered with register_setting()
+   $options = get_option('ncoaads_orientation');
+?>
+   <select
+      id="<?php echo esc_attr($args['label_for']); ?>"
+      data-custom="<?php echo esc_attr($args['ncoaads_custom_data']); ?>"
+      name="ncoaads_orientation[<?php echo esc_attr($args['label_for']); ?>]">
+
+      <option value="vertical" <?php echo isset($options[$args['label_for']]) ? (selected($options[$args['label_for']], 'vertical', false)) : (''); ?>>
+         <?php esc_html_e('Vertical', 'ncoaads'); ?>
+      </option>
+
+   </select>
+   <p class="description">
+      <?php esc_html_e('Choose ad orientation for this site.', 'ncoaads'); ?>
+   </p>
+<?php
+}
+
 function ncoaads_field_cookie_timeout_cb($args) {
    // Get the value of the setting we've registered with register_setting()
    $options = get_option('ncoaads_cookie_timeout');
@@ -220,6 +253,7 @@ function ncoaads_field_cookie_timeout_cb($args) {
       <?php esc_html_e('Enter the number of minutes to hide ads after the user clicks close.', 'ncoaads'); ?>
    </p>
    <p class="description">
+      6 hours : 360 minutes<br>
       12 hours : 720 minutes<br>
       24 hours : 1440 minutes
    </p>
