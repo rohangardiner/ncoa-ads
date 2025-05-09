@@ -152,10 +152,10 @@ function run_ncoa_ads() {
    // Link to settings page from plugins screen
    add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'add_action_links');
    function add_action_links($links) {
-      $mylinks = array(
+      $plugin_links = array(
          '<a href="' . admin_url('options-general.php?page=ncoaads') . '">Settings</a>',
       );
-      return array_merge($links, $mylinks);
+      return array_merge($links, $plugin_links);
    }
 
    // Check for plugin updates
