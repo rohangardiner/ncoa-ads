@@ -164,7 +164,7 @@ function run_ncoa_ads() {
             'api_url' => 'https://api.github.com/repos/rohangardiner/ncoa-ads', // the GitHub API url of your GitHub repo
             'raw_url' => 'https://raw.github.com/rohangardiner/ncoa-ads/main', // the GitHub raw url of your GitHub repo
             'github_url' => 'https://github.com/rohangardiner/ncoa-ads', // the GitHub url of your GitHub repo
-            'zip_url' => 'https://github.com/rohangardiner/ncoa-ads/release/ncoa-ads.zip', // the zip url of the GitHub repo
+            'zip_url' => 'https://github.com/rohangardiner/ncoa-ads/zipball/main', // the zip url of the GitHub repo
             'sslverify' => true, // whether WP should check the validity of the SSL cert when getting an update, see https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/2 and https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/4 for details
             'requires' => '6.0', // which version of WordPress does your plugin require?
             'tested' => '6.8.1', // which version of WordPress is your plugin tested up to?
