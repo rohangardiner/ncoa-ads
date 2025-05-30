@@ -138,11 +138,12 @@ function run_ncoa_ads() {
 
    // Get the ncoaads_cookie_timeout option from db, returns an array
    $ads_enabled = get_option('ncoaads_enable_plugin');
+   $ads_enabled_for_logged_in_users = get_option('ncoaads_show_for_logged_in_users');
    $cookie_timeout = get_option('ncoaads_cookie_timeout');
    $ad_type = get_option('ncoaads_adtype');
 
-   // Show a display ad on non-admin pages, passing college type and cookie timeout set in WP Admin options
-   if (!is_admin() && $ads_enabled === 1) {
+   // If not WP Admin page, and ads enabled, and either not logged in or ads enabled for logged-in users, show an ad
+   if (!is_admin() && $ads_enabled === 1 && (!is_user_logged_in() || $ads_enabled_for_logged_in_users === 1)) {
       echo display_ad(
          $ad_type['ncoaads_field_adtype'],
          $cookie_timeout['ncoaads_field_cookie_timeout']
