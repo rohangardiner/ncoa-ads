@@ -102,6 +102,7 @@ class Ncoa_Ads_Admin {
 function ncoaads_settings_init() {
    // Register a new setting for "ncoaads" page.
    register_setting('ncoaads', 'ncoaads_enable_plugin');
+   register_setting('ncoaads', 'ncoaads_show_for_logged_in_users');
    register_setting('ncoaads', 'ncoaads_adtype');
    register_setting('ncoaads', 'ncoaads_orientation');
    register_setting('ncoaads', 'ncoaads_cookie_timeout');
@@ -123,6 +124,19 @@ function ncoaads_settings_init() {
    'ncoaads_section_developers',
    array(
       'label_for'         => 'ncoaads_field_enable_plugin',
+      'class'             => 'ncoaads_row',
+      'ncoaads_custom_data' => 'custom',
+   )
+);
+
+add_settings_field(
+   'ncoaads_field_show_for_logged_in_users',
+   __('Enable Ads for Logged-in Users', 'ncoaads'),
+   'ncoaads_field_show_for_logged_in_users_cb',
+   'ncoaads',
+   'ncoaads_section_developers',
+   array(
+      'label_for'         => 'ncoaads_field_show_for_logged_in_users',
       'class'             => 'ncoaads_row',
       'ncoaads_custom_data' => 'custom',
    )
@@ -216,6 +230,23 @@ function ncoaads_section_developers_callback($args) {
       <?php echo $checked; ?> />
    <label for="<?php echo esc_attr($args['label_for']); ?>">
       <?php esc_html_e('Enable NCOA Ads on this website.', 'ncoaads'); ?>
+   </label>
+<?php
+}
+
+ function ncoaads_field_show_for_logged_in_users_cb($args) {
+   // Get the value of the setting we've registered with register_setting()
+   $options = get_option('ncoaads_show_for_logged_in_users', '1');
+   $checked = $options === '1' ? 'checked' : '';
+?>
+   <input
+      type="checkbox"
+      id="<?php echo esc_attr($args['label_for']); ?>"
+      name="ncoaads_show_for_logged_in_users"
+      value="1"
+      <?php echo $checked; ?> />
+   <label for="<?php echo esc_attr($args['label_for']); ?>">
+      <?php esc_html_e('Enable NCOA Ads for logged-in users.', 'ncoaads'); ?>
    </label>
 <?php
 }

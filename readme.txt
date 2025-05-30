@@ -12,5 +12,8 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Insert NCOA Display Ads on WordPress sites
 
 == Changelog ==
+= 1.0.8 =
+* Additional Admin settings
+
 = 1.0.7 =
 * Updated file structure
