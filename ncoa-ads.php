@@ -16,7 +16,7 @@
  * Plugin Name:       NCOA Ads
  * Plugin URI:        https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
- * Version:           1.0.8
+ * Version:           1.0.9
  * Author:            Rohan
  * Author URI:        https://ncoa.com.au/
  * License:           GPL-2.0+
@@ -35,7 +35,7 @@ if (! defined('WPINC')) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define('NCOA_ADS_VERSION', '1.0.8');
+define('NCOA_ADS_VERSION', '1.0.9');
 define('NCOA_ADS_ASSETS', plugin_dir_url(__FILE__) . 'public/assets');
 
 /**
@@ -150,13 +150,14 @@ function run_ncoa_ads() {
    }
 
    // Link to settings page from plugins screen
-   add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'add_action_links');
-   function add_action_links($links) {
-      $plugin_links = array(
-         '<a href="' . admin_url('options-general.php?page=ncoaads') . '">Settings</a>',
-      );
-      return array_merge($links, $plugin_links);
+   function add_plugin_link($plugin_actions, $plugin_file) {
+      $new_actions = array();
+      if (basename(plugin_dir_path(__FILE__)) . 'ncoa-ads.php' === $plugin_file) {
+         $new_actions['na_settings'] = sprintf(__('<a href="%s">Settings</a>', 'ncoaads'), esc_url(admin_url('options-general.php?page=ncoaads')));
+      }
+      return array_merge($new_actions, $plugin_actions);
    }
+   add_filter('plugin_action_links', 'add_plugin_link', 10, 2);
 
    // Check for plugin updates
    add_action('init', 'github_plugin_updater_test_init');
