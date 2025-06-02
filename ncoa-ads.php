@@ -16,7 +16,7 @@
  * Plugin Name:       NCOA Ads
  * Plugin URI:        https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
- * Version:           1.0.10
+ * Version:           1.0.11
  * Author:            Rohan
  * Author URI:        https://ncoa.com.au/
  * License:           GPL-2.0+
@@ -122,6 +122,23 @@ function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
    ';
 }
 
+function queue_display_ad() {
+   // Runs after WordPress loaded
+   // Get the ncoaads_cookie_timeout option from db, returns an array
+   $ads_enabled = get_option('ncoaads_enable_plugin');
+   $ads_enabled_for_logged_in_users = get_option('ncoaads_show_for_logged_in_users');
+   $cookie_timeout = get_option('ncoaads_cookie_timeout');
+   $ad_type = get_option('ncoaads_adtype');
+
+   // If not WP Admin page, and ads enabled, and either not logged in or ads enabled for logged-in users, show an ad
+   if (!is_admin() && $ads_enabled == 1 && (!is_user_logged_in() || $ads_enabled_for_logged_in_users == 1)) {
+      echo display_ad(
+         $ad_type['ncoaads_field_adtype'],
+         $cookie_timeout['ncoaads_field_cookie_timeout']
+      );
+   }
+}
+
 /**
  * Begins execution of the plugin.
  *
@@ -136,19 +153,8 @@ function run_ncoa_ads() {
    $plugin = new Ncoa_Ads();
    $plugin->run();
 
-   // Get the ncoaads_cookie_timeout option from db, returns an array
-   $ads_enabled = get_option('ncoaads_enable_plugin');
-   $ads_enabled_for_logged_in_users = get_option('ncoaads_show_for_logged_in_users');
-   $cookie_timeout = get_option('ncoaads_cookie_timeout');
-   $ad_type = get_option('ncoaads_adtype');
-
-   // If not WP Admin page, and ads enabled, and either not logged in or ads enabled for logged-in users, show an ad
-   if (!is_admin() && $ads_enabled == 1 && (!is_user_logged_in() || $ads_enabled_for_logged_in_users == 1)) {
-      echo display_ad(
-         $ad_type['ncoaads_field_adtype'],
-         $cookie_timeout['ncoaads_field_cookie_timeout']
-      );
-   }
+   // Queue ad display function so that we can get is_logged_in after plugins loaded
+   add_action('init', 'queue_display_ad');
 
    // Link to settings page from plugins screen
    function add_plugin_link($plugin_actions, $plugin_file) {
