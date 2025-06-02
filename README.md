@@ -2,7 +2,7 @@
 Insert NCOA Display Ads on WordPress sites
 
 ## Changelog
-~Current Version:1.0.12~
+~Current Version:1.1.0~
 
 ### 1.0.0
 * Plugin created
