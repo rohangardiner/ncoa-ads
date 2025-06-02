@@ -95,9 +95,9 @@ function get_random_image_from_directory($directory) {
 function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
    // Use ad type as array index to get the target URL for the ad
    $target = array(
-      'accsc' => 'https://accsc.com.au/',
-      'actac' => 'https://actac.com.au/',
-      'acfpt' => 'https://acfpt.com.au/'
+      'accsc' => 'https://accsc.com.au/courses/?utm_source=ncoa&utm_medium=display&utm_campaign=ncoaadsplugin',
+      'actac' => 'https://actac.com.au/courses/?utm_source=ncoa&utm_medium=display&utm_campaign=ncoaadsplugin',
+      'acfpt' => 'https://acfpt.com.au/courses/?utm_source=ncoa&utm_medium=display&utm_campaign=ncoaadsplugin'
    );
 
    // Define the directory for the ad images
