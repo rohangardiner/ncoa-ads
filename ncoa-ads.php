@@ -143,7 +143,7 @@ function run_ncoa_ads() {
    $ad_type = get_option('ncoaads_adtype');
 
    // If not WP Admin page, and ads enabled, and either not logged in or ads enabled for logged-in users, show an ad
-   if (!is_admin() && $ads_enabled === 1 && (!is_user_logged_in() || $ads_enabled_for_logged_in_users === 1)) {
+   if (!is_admin() && $ads_enabled == 1 && (!is_user_logged_in() || $ads_enabled_for_logged_in_users == 1)) {
       echo display_ad(
          $ad_type['ncoaads_field_adtype'],
          $cookie_timeout['ncoaads_field_cookie_timeout']
