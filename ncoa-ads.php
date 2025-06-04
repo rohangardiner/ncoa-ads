@@ -16,7 +16,7 @@
  * Plugin Name:       NCOA Ads
  * Plugin URI:        https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
- * Version:           1.1.0
+ * Version:           1.1.1
  * Author:            Rohan
  * Author URI:        https://ncoa.com.au/
  * License:           GPL-2.0+
@@ -167,8 +167,8 @@ function run_ncoa_ads() {
    add_filter('plugin_action_links', 'add_plugin_link', 10, 2);
 
    // Check for plugin updates
-   add_action('init', 'github_plugin_updater_test_init');
-   function github_plugin_updater_test_init() {
+   add_action('init', 'github_plugin_updater_ncoa_ads');
+   function github_plugin_updater_ncoa_ads() {
       require_once plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads-updater.php';
       define('WP_GITHUB_FORCE_UPDATE', true);
       if (is_admin()) {
@@ -185,7 +185,7 @@ function run_ncoa_ads() {
             'readme' => 'README.md', // which file to use as the readme for the version number
             'access_token' => '', // Access private repositories by authorizing under Plugins > GitHub Updates when this example plugin is installed
          );
-         new WP_GitHub_Updater($config);
+         new WP_GitHub_Updater_Ncoa_Ads($config);
       }
    }
 }
