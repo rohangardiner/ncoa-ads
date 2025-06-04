@@ -16,7 +16,7 @@
  * Plugin Name:       NCOA Ads
  * Plugin URI:        https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
- * Version:           1.1.3
+ * Version:           1.1.4
  * Author:            Rohan
  * Author URI:        https://ncoa.com.au/
  * License:           GPL-2.0+
@@ -113,9 +113,10 @@ function display_ad($ad_type = 'accsc', $cookie_timeout = 60) {
       $random_image = plugin_dir_url(__FILE__) . 'public/assets/' . $ad_type . '/' . basename($random_image);
    }
 
+   // Load the image, display: none to prevent flicker as it loads, will set display:block in JS
    return '
       <div id="ncoadisplay" data-time=' . $cookie_timeout . '>
-         <img loading="lazy" src="' . $random_image . '">
+         <img loading="lazy" style="display:none;" src="' . $random_image . '">
          <a id="ncoadisplay-clickarea" href="' . $target[$ad_type] . '"></a>
          <button id="ncoadisplay-close">&times;</button>
       </div>

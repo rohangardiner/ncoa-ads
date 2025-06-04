@@ -44,6 +44,9 @@ document.addEventListener("DOMContentLoaded", function () {
        if (img.complete) {
            img.style.display = "block";
        }
+
+       // Just because I'm paranoid
+       img.style.display = "block";
    }
 });
 
