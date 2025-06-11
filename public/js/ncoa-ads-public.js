@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 const ncoa_display = document.getElementById('ncoadisplay');
-const timeoutMins = ncoa_display.getAttribute('data-time')
+const timeoutMins = ncoa_display ? ncoa_display.getAttribute('data-time') : null;
 const closeButton = document.getElementById('ncoadisplay-close');
 const cookieName = 'ncoadisplay_hide';
 

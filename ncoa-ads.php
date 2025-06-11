@@ -16,7 +16,7 @@
  * Plugin Name:       NCOA Ads
  * Plugin URI:        https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
- * Version:           1.1.4
+ * Version:           1.1.5
  * Author:            Rohan
  * Author URI:        https://ncoa.com.au/
  * License:           GPL-2.0+
@@ -136,7 +136,12 @@ function queue_display_ad() {
    $ad_type = get_option('ncoaads_adtype');
 
    // If not WP Admin page, and ads enabled, and either not logged in or ads enabled for logged-in users, show an ad
-   if (!is_admin() && !is_login_page() && $ads_enabled == 1 && (!is_user_logged_in() || $ads_enabled_for_logged_in_users == 1)) {
+   if (
+      !is_admin() && 
+      strpos($_SERVER['REQUEST_URI'], 'elementor') === false && 
+      !is_login_page() && 
+      $ads_enabled == 1 && 
+      (!is_user_logged_in() || $ads_enabled_for_logged_in_users == 1)) {
       echo display_ad(
          $ad_type['ncoaads_field_adtype'],
          $cookie_timeout['ncoaads_field_cookie_timeout']
