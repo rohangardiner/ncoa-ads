@@ -51,9 +51,14 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 const ncoa_display = document.getElementById('ncoadisplay');
-const timeoutMins = ncoa_display ? ncoa_display.getAttribute('data-time') : null;
 const closeButton = document.getElementById('ncoadisplay-close');
 const cookieName = 'ncoadisplay_hide';
+let timeoutMins = 0;
+
+if (ncoa_display && closeButton) {
+   timeoutMins = ncoa_display.getAttribute('data-time');
+   closeButton.addEventListener('click', hideElement);
+}
 
 function setCookie(name, value, minutes) {
    const date = new Date();
@@ -83,5 +88,3 @@ function hideElement() {
 if (getCookie(cookieName) === 'true') {
    ncoa_display.style.display = 'none';
 }
-
-closeButton.addEventListener('click', hideElement);
