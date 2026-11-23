@@ -1,155 +1,115 @@
 <?php
 
 // Prevent loading this file directly and/or if the class is already defined
-if ( ! defined( 'ABSPATH' ) || class_exists( 'WPGitHubUpdater' ) || class_exists( 'WP_GitHub_Updater' ) )
+if ( ! defined( 'ABSPATH' ) || class_exists( 'Ncoa_Ads_Bitbucket_Updater' ) )
 	return;
 
 /**
+ * Checks a Bitbucket Cloud repository branch for new plugin versions and
+ * lets WordPress install them through the normal plugin update screen.
  *
+ * Based on WP_GitHub_Updater 1.6 by Joachim Kudish (GPL-2.0+).
  *
- * @version 1.6
- * @author Joachim Kudish <info@jkudish.com>
- * @link http://jkudish.com
- * @package WP_GitHub_Updater_Ncoa_Ads
+ * The version is read from the "Version:" header of the main plugin file on
+ * the configured branch. Bump that header to publish an update.
+ *
+ * Private repositories: define NCOA_ADS_BITBUCKET_TOKEN in wp-config.php with
+ * either a Bitbucket repository access token (sent as a Bearer token) or
+ * "email:api_token" for an Atlassian API token (sent as Basic auth).
+ *
+ * @package Ncoa_Ads
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- * @copyright Copyright (c) 2011-2013, Joachim Kudish
- *
- * GNU General Public License, Free Software Foundation
- * <http://creativecommons.org/licenses/GPL/2.0/>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-class WP_GitHub_Updater_Ncoa_Ads {
+class Ncoa_Ads_Bitbucket_Updater {
 
 	/**
-	 * GitHub Updater version
+	 * Seconds to cache remote data between checks.
 	 */
-	const VERSION = 1.6;
+	const CACHE_TTL = 21600; // 6 hours
 
 	/**
-	 * @var $config the config for the updater
-	 * @access public
+	 * @var array the config for the updater
 	 */
-	var $config;
+	public $config;
 
 	/**
-	 * @var $missing_config any config that is missing from the initialization of this instance
-	 * @access public
+	 * @var array config keys missing from the initialization of this instance
 	 */
-	var $missing_config;
+	public $missing_config;
 
 	/**
-	 * @var $github_data temporiraly store the data fetched from GitHub, allows us to only load the data once per class instance
-	 * @access private
+	 * @var object|false repository data from the Bitbucket API, cached per request
 	 */
-	private $github_data;
-
+	private $repo_data;
 
 	/**
-	 * Class Constructor
-	 *
-	 * @since 1.0
 	 * @param array $config the configuration required for the updater to work
-	 * @see has_minimum_config()
-	 * @return void
 	 */
 	public function __construct( $config = array() ) {
 
 		$defaults = array(
-			'slug' => plugin_basename( __FILE__ ),
-			'proper_folder_name' => dirname( plugin_basename( __FILE__ ) ),
-			'sslverify' => true,
-			'access_token' => '',
+			'slug'               => '',
+			'proper_folder_name' => '',
+			'workspace'          => '',
+			'repo'               => '',
+			'branch'             => 'main',
+			'sslverify'          => true,
+			'access_token'       => '',
+			'readme'             => 'README.md',
+			'timeout'            => 5,
 		);
 
 		$this->config = wp_parse_args( $config, $defaults );
 
-		// if the minimum config isn't set, issue a warning and bail
 		if ( ! $this->has_minimum_config() ) {
-			$message = 'The GitHub Updater was initialized without the minimum required configuration, please check the config in your plugin. The following params are missing: ';
+			$message  = 'The Bitbucket Updater was initialized without the minimum required configuration. Missing params: ';
 			$message .= implode( ',', $this->missing_config );
-			_doing_it_wrong( __CLASS__, $message , self::VERSION );
+			_doing_it_wrong( __CLASS__, esc_html( $message ), '1.1.7' );
 			return;
 		}
 
 		$this->set_defaults();
 
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'api_check' ) );
-
-		// Hook into the plugin details screen
 		add_filter( 'plugins_api', array( $this, 'get_plugin_info' ), 10, 3 );
 		add_filter( 'upgrader_post_install', array( $this, 'upgrader_post_install' ), 10, 3 );
 
-		// set timeout
-		add_filter( 'http_request_timeout', array( $this, 'http_request_timeout' ) );
-
-		// set sslverify for zip download
-		add_filter( 'http_request_args', array( $this, 'http_request_sslverify' ), 10, 2 );
+		// Add auth header / sslverify to WordPress's own zip download request
+		add_filter( 'http_request_args', array( $this, 'http_request_args' ), 10, 2 );
 	}
 
 	public function has_minimum_config() {
-
 		$this->missing_config = array();
 
-		$required_config_params = array(
-			'api_url',
-			'raw_url',
-			'github_url',
-			'zip_url',
-			'requires',
-			'tested',
-			'readme',
-		);
-
-		foreach ( $required_config_params as $required_param ) {
-			if ( empty( $this->config[$required_param] ) )
-				$this->missing_config[] = $required_param;
+		foreach ( array( 'slug', 'proper_folder_name', 'workspace', 'repo', 'branch', 'requires', 'tested' ) as $param ) {
+			if ( empty( $this->config[ $param ] ) )
+				$this->missing_config[] = $param;
 		}
 
-		return ( empty( $this->missing_config ) );
+		return empty( $this->missing_config );
 	}
 
-
 	/**
-	 * Check wether or not the transients need to be overruled and API needs to be called for every single page load
+	 * Skip the transient cache and hit Bitbucket on every check.
+	 * Only for debugging: Bitbucket rate-limits API requests.
 	 *
-	 * @return bool overrule or not
+	 * @return bool
 	 */
 	public function overrule_transients() {
-		return ( defined( 'WP_GITHUB_FORCE_UPDATE' ) && WP_GITHUB_FORCE_UPDATE );
+		return ( defined( 'NCOA_ADS_FORCE_UPDATE_CHECK' ) && NCOA_ADS_FORCE_UPDATE_CHECK );
 	}
 
-
-	/**
-	 * Set defaults
-	 *
-	 * @since 1.2
-	 * @return void
-	 */
 	public function set_defaults() {
-		if ( !empty( $this->config['access_token'] ) ) {
+		$ws   = rawurlencode( $this->config['workspace'] );
+		$repo = rawurlencode( $this->config['repo'] );
+		$branch = rawurlencode( $this->config['branch'] );
 
-			// See Downloading a zipball (private repo) https://help.github.com/articles/downloading-files-from-the-command-line
-			extract( parse_url( $this->config['zip_url'] ) ); // $scheme, $host, $path
+		$this->config['api_url']  = "https://api.bitbucket.org/2.0/repositories/{$ws}/{$repo}";
+		$this->config['src_url']  = $this->config['api_url'] . "/src/{$branch}/";
+		$this->config['repo_url'] = "https://bitbucket.org/{$ws}/{$repo}";
+		$this->config['zip_url']  = $this->config['repo_url'] . "/get/{$branch}.zip";
 
-			$zip_url = $scheme . '://api.github.com/repos' . $path;
-			$zip_url = add_query_arg( array( 'access_token' => $this->config['access_token'] ), $zip_url );
-
-			$this->config['zip_url'] = $zip_url;
-		}
-
+		$this->config['cache_key'] = 'ncoa_ads_bb_' . md5( $this->config['slug'] );
 
 		if ( ! isset( $this->config['new_version'] ) )
 			$this->config['new_version'] = $this->get_new_version();
@@ -161,6 +121,7 @@ class WP_GitHub_Updater_Ncoa_Ads {
 			$this->config['description'] = $this->get_description();
 
 		$plugin_data = $this->get_plugin_data();
+
 		if ( ! isset( $this->config['plugin_name'] ) )
 			$this->config['plugin_name'] = $plugin_data['Name'];
 
@@ -172,269 +133,251 @@ class WP_GitHub_Updater_Ncoa_Ads {
 
 		if ( ! isset( $this->config['homepage'] ) )
 			$this->config['homepage'] = $plugin_data['PluginURI'];
-
-		if ( ! isset( $this->config['readme'] ) )
-			$this->config['readme'] = 'README.md';
-
-	}
-
-
-	/**
-	 * Callback fn for the http_request_timeout filter
-	 *
-	 * @since 1.0
-	 * @return int timeout value
-	 */
-	public function http_request_timeout() {
-		return 2;
 	}
 
 	/**
-	 * Callback fn for the http_request_args filter
+	 * Authorization header value for the configured token, or '' for none.
 	 *
-	 * @param unknown $args
-	 * @param unknown $url
-	 *
-	 * @return mixed
+	 * @return string
 	 */
-	public function http_request_sslverify( $args, $url ) {
-		if ( $this->config[ 'zip_url' ] == $url )
-			$args[ 'sslverify' ] = $this->config[ 'sslverify' ];
+	private function auth_header() {
+		$token = $this->config['access_token'];
+
+		if ( empty( $token ) )
+			return '';
+
+		// "email:api_token" => Basic auth, otherwise a repository access token
+		if ( false !== strpos( $token, ':' ) )
+			return 'Basic ' . base64_encode( $token );
+
+		return 'Bearer ' . $token;
+	}
+
+	/**
+	 * Callback for http_request_args: authenticates WordPress's download of
+	 * the update zip, which is made outside this class.
+	 *
+	 * @param array  $args
+	 * @param string $url
+	 * @return array
+	 */
+	public function http_request_args( $args, $url ) {
+		if ( $this->config['zip_url'] !== $url )
+			return $args;
+
+		$args['sslverify'] = $this->config['sslverify'];
+
+		$auth = $this->auth_header();
+		if ( $auth ) {
+			if ( ! isset( $args['headers'] ) || ! is_array( $args['headers'] ) )
+				$args['headers'] = array();
+			$args['headers']['Authorization'] = $auth;
+		}
 
 		return $args;
 	}
 
+	/**
+	 * GET a Bitbucket URL with auth.
+	 *
+	 * @param string $url
+	 * @return array|WP_Error
+	 */
+	public function remote_get( $url ) {
+		$args = array(
+			'sslverify' => $this->config['sslverify'],
+			'timeout'   => $this->config['timeout'],
+			'headers'   => array(),
+		);
+
+		$auth = $this->auth_header();
+		if ( $auth )
+			$args['headers']['Authorization'] = $auth;
+
+		return wp_remote_get( $url, $args );
+	}
 
 	/**
-	 * Get New Version from GitHub
+	 * Body of a successful response, or false.
 	 *
-	 * @since 1.0
-	 * @return int $version the version number
+	 * @param array|WP_Error $response
+	 * @return string|false
+	 */
+	private function response_body( $response ) {
+		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) )
+			return false;
+
+		$body = wp_remote_retrieve_body( $response );
+		return ( '' === $body ) ? false : $body;
+	}
+
+	/**
+	 * Get the version on the Bitbucket branch.
+	 *
+	 * @return string|false
 	 */
 	public function get_new_version() {
-		$version = get_site_transient( md5($this->config['slug']).'_new_version' );
+		$key     = $this->config['cache_key'] . '_new_version';
+		$version = get_site_transient( $key );
 
-		if ( $this->overrule_transients() || ( !isset( $version ) || !$version || '' == $version ) ) {
+		if ( ! $this->overrule_transients() && ! empty( $version ) )
+			return $version;
 
-			$raw_response = $this->remote_get( trailingslashit( $this->config['raw_url'] ) . basename( $this->config['slug'] ) );
+		$version = false;
 
-			if ( is_wp_error( $raw_response ) )
-				$version = false;
+		// Version: header of the main plugin file
+		$body = $this->response_body( $this->remote_get( $this->config['src_url'] . basename( $this->config['slug'] ) ) );
+		if ( $body && preg_match( '/^[\s\*#@]*Version:\s*(\S+)/mi', $body, $matches ) )
+			$version = trim( $matches[1] );
 
-			if (is_array($raw_response)) {
-				if (!empty($raw_response['body']))
-					preg_match( '/.*Version\:\s*(.*)$/mi', $raw_response['body'], $matches );
-			}
-
-			if ( empty( $matches[1] ) )
-				$version = false;
-			else
-				$version = $matches[1];
-
-			// back compat for older readme version handling
-			// only done when there is no version found in file name
-			if ( false === $version ) {
-				$raw_response = $this->remote_get( trailingslashit( $this->config['raw_url'] ) . $this->config['readme'] );
-
-				if ( is_wp_error( $raw_response ) )
-					return $version;
-
-				preg_match( '#^\s*`*~Current Version\:\s*([^~]*)~#im', $raw_response['body'], $__version );
-
-				if ( isset( $__version[1] ) ) {
-					$version_readme = $__version[1];
-					if ( -1 == version_compare( $version, $version_readme ) )
-						$version = $version_readme;
-				}
-			}
-
-			// refresh every 6 hours
-			if ( false !== $version )
-				set_site_transient( md5($this->config['slug']).'_new_version', $version, 60*60*6 );
+		// Fallback: ~Current Version:x.y.z~ in the readme
+		if ( false === $version ) {
+			$body = $this->response_body( $this->remote_get( $this->config['src_url'] . $this->config['readme'] ) );
+			if ( $body && preg_match( '#^\s*`*~Current Version\:\s*([^~]*)~#im', $body, $matches ) )
+				$version = trim( $matches[1] );
 		}
+
+		if ( false !== $version )
+			set_site_transient( $key, $version, self::CACHE_TTL );
 
 		return $version;
 	}
 
-
 	/**
-	 * Interact with GitHub
+	 * Repository metadata from the Bitbucket API.
 	 *
-	 * @param string $query
-	 *
-	 * @since 1.6
-	 * @return mixed
+	 * @return object|false
 	 */
-	public function remote_get( $query ) {
-		if ( ! empty( $this->config['access_token'] ) )
-			$query = add_query_arg( array( 'access_token' => $this->config['access_token'] ), $query );
+	public function get_repo_data() {
+		if ( ! empty( $this->repo_data ) )
+			return $this->repo_data;
 
-		$raw_response = wp_remote_get( $query, array(
-			'sslverify' => $this->config['sslverify']
-		) );
+		$key  = $this->config['cache_key'] . '_repo_data';
+		$data = get_site_transient( $key );
 
-		return $raw_response;
-	}
+		if ( $this->overrule_transients() || empty( $data ) ) {
+			$body = $this->response_body( $this->remote_get( $this->config['api_url'] ) );
+			$data = $body ? json_decode( $body ) : false;
 
+			if ( ! is_object( $data ) )
+				return false;
 
-	/**
-	 * Get GitHub Data from the specified repository
-	 *
-	 * @since 1.0
-	 * @return array $github_data the data
-	 */
-	public function get_github_data() {
-		if ( isset( $this->github_data ) && ! empty( $this->github_data ) ) {
-			$github_data = $this->github_data;
-		} else {
-			$github_data = get_site_transient( md5($this->config['slug']).'_github_data' );
-
-			if ( $this->overrule_transients() || ( ! isset( $github_data ) || ! $github_data || '' == $github_data ) ) {
-				$github_data = $this->remote_get( $this->config['api_url'] );
-
-				if ( is_wp_error( $github_data ) )
-					return false;
-
-				$github_data = json_decode( $github_data['body'] );
-
-				// refresh every 6 hours
-				set_site_transient( md5($this->config['slug']).'_github_data', $github_data, 60*60*6 );
-			}
-
-			// Store the data in this class instance for future calls
-			$this->github_data = $github_data;
+			set_site_transient( $key, $data, self::CACHE_TTL );
 		}
 
-		return $github_data;
-	}
-
-
-	/**
-	 * Get update date
-	 *
-	 * @since 1.0
-	 * @return string $date the date
-	 */
-	public function get_date() {
-		$_date = $this->get_github_data();
-		return ( !empty( $_date->updated_at ) ) ? date( 'Y-m-d', strtotime( $_date->updated_at ) ) : false;
-	}
-
-
-	/**
-	 * Get plugin description
-	 *
-	 * @since 1.0
-	 * @return string $description the description
-	 */
-	public function get_description() {
-		$_description = $this->get_github_data();
-		return ( !empty( $_description->description ) ) ? $_description->description : false;
-	}
-
-
-	/**
-	 * Get Plugin data
-	 *
-	 * @since 1.0
-	 * @return object $data the data
-	 */
-	public function get_plugin_data() {
-		include_once ABSPATH.'/wp-admin/includes/plugin.php';
-		$data = get_plugin_data( WP_PLUGIN_DIR.'/'.$this->config['slug'] );
+		$this->repo_data = $data;
 		return $data;
 	}
 
+	/**
+	 * @return string|false Y-m-d of the last repository update
+	 */
+	public function get_date() {
+		$data = $this->get_repo_data();
+		return ( ! empty( $data->updated_on ) ) ? date( 'Y-m-d', strtotime( $data->updated_on ) ) : false;
+	}
 
 	/**
-	 * Hook into the plugin update check and connect to GitHub
+	 * @return string|false the repository description
+	 */
+	public function get_description() {
+		$data = $this->get_repo_data();
+		return ( ! empty( $data->description ) ) ? $data->description : false;
+	}
+
+	/**
+	 * @return array header data of the installed plugin
+	 */
+	public function get_plugin_data() {
+		include_once ABSPATH . '/wp-admin/includes/plugin.php';
+		return get_plugin_data( WP_PLUGIN_DIR . '/' . $this->config['slug'] );
+	}
+
+	/**
+	 * Add our update to the plugin update transient when Bitbucket has a newer version.
 	 *
-	 * @since 1.0
-	 * @param object  $transient the plugin data transient
-	 * @return object $transient updated plugin data transient
+	 * @param object $transient
+	 * @return object
 	 */
 	public function api_check( $transient ) {
-
-		// Check if the transient contains the 'checked' information
-		// If not, just return its value without hacking it
-		if ( empty( $transient->checked ) )
+		if ( empty( $transient->checked ) || empty( $this->config['new_version'] ) )
 			return $transient;
 
-		// check the version and decide if it's new
-		$update = version_compare( $this->config['new_version'], $this->config['version'] );
-
-		if ( 1 === $update ) {
-			$response = new stdClass;
+		if ( 1 === version_compare( $this->config['new_version'], $this->config['version'] ) ) {
+			$response              = new stdClass;
 			$response->new_version = $this->config['new_version'];
-			$response->slug = $this->config['proper_folder_name'];
-			$response->url = add_query_arg( array( 'access_token' => $this->config['access_token'] ), $this->config['github_url'] );
-			$response->package = $this->config['zip_url'];
+			$response->slug        = $this->config['proper_folder_name'];
+			$response->plugin      = $this->config['slug'];
+			$response->url         = $this->config['repo_url'];
+			$response->package     = $this->config['zip_url'];
 
-			// If response is false, don't alter the transient
-			if ( false !== $response )
-				$transient->response[ $this->config['slug'] ] = $response;
+			$transient->response[ $this->config['slug'] ] = $response;
 		}
 
 		return $transient;
 	}
 
-
 	/**
-	 * Get Plugin info
+	 * Plugin details popup on the Plugins screen.
 	 *
-	 * @since 1.0
-	 * @param bool    $false  always false
-	 * @param string  $action the API function being performed
-	 * @param object  $args   plugin arguments
-	 * @return object $response the plugin info
+	 * @param false|object|array $result
+	 * @param string             $action
+	 * @param object             $args
+	 * @return false|object|array
 	 */
-	public function get_plugin_info( $false, $action, $response ) {
+	public function get_plugin_info( $result, $action, $args ) {
+		if ( 'plugin_information' !== $action || ! isset( $args->slug ) )
+			return $result;
 
-		// Check if this call API is for the right plugin
-		if ( !isset( $response->slug ) || $response->slug != $this->config['slug'] )
-			return false;
+		if ( $args->slug !== $this->config['proper_folder_name'] && $args->slug !== $this->config['slug'] )
+			return $result;
 
-		$response->slug = $this->config['slug'];
-		$response->plugin_name  = $this->config['plugin_name'];
-		$response->version = $this->config['new_version'];
-		$response->author = $this->config['author'];
-		$response->homepage = $this->config['homepage'];
-		$response->requires = $this->config['requires'];
-		$response->tested = $this->config['tested'];
-		$response->downloaded   = 0;
-		$response->last_updated = $this->config['last_updated'];
-		$response->sections = array( 'description' => $this->config['description'] );
-		$response->download_link = $this->config['zip_url'];
+		$info                = new stdClass;
+		$info->name          = $this->config['plugin_name'];
+		$info->slug          = $this->config['proper_folder_name'];
+		$info->version       = $this->config['new_version'];
+		$info->author        = $this->config['author'];
+		$info->homepage      = $this->config['homepage'];
+		$info->requires      = $this->config['requires'];
+		$info->tested        = $this->config['tested'];
+		$info->downloaded    = 0;
+		$info->last_updated  = $this->config['last_updated'];
+		$info->sections      = array( 'description' => (string) $this->config['description'] );
+		$info->download_link = $this->config['zip_url'];
 
-		return $response;
+		return $info;
 	}
 
-
 	/**
-	 * Upgrader/Updater
-	 * Move & activate the plugin, echo the update message
+	 * Bitbucket zips unpack to "workspace-repo-<hash>/". Move that to the
+	 * plugin's real folder and reactivate it.
 	 *
-	 * @since 1.0
-	 * @param boolean $true       always true
-	 * @param mixed   $hook_extra not used
-	 * @param array   $result     the result of the move
-	 * @return array $result the result of the move
+	 * @param bool  $response
+	 * @param array $hook_extra
+	 * @param array $result
+	 * @return array
 	 */
-	public function upgrader_post_install( $true, $hook_extra, $result ) {
-
+	public function upgrader_post_install( $response, $hook_extra, $result ) {
 		global $wp_filesystem;
 
-		// Move & Activate
-		$proper_destination = WP_PLUGIN_DIR.'/'.$this->config['proper_folder_name'];
-		$wp_filesystem->move( $result['destination'], $proper_destination );
-		$result['destination'] = $proper_destination;
-		$activate = activate_plugin( WP_PLUGIN_DIR.'/'.$this->config['slug'] );
+		// Only act on updates of this plugin
+		if ( empty( $hook_extra['plugin'] ) || $hook_extra['plugin'] !== $this->config['slug'] )
+			return $result;
 
-		// Output the update message
-		$fail  = __( 'The plugin has been updated, but could not be reactivated. Please reactivate it manually.', 'github_plugin_updater' );
-		$success = __( 'Plugin reactivated successfully.', 'github_plugin_updater' );
-		echo is_wp_error( $activate ) ? $fail : $success;
+		$proper_destination = WP_PLUGIN_DIR . '/' . $this->config['proper_folder_name'];
+
+		if ( untrailingslashit( $result['destination'] ) !== $proper_destination ) {
+			$wp_filesystem->move( $result['destination'], $proper_destination, true );
+			$result['destination']      = $proper_destination;
+			$result['destination_name'] = $this->config['proper_folder_name'];
+		}
+
+		$activate = activate_plugin( WP_PLUGIN_DIR . '/' . $this->config['slug'] );
+
+		$fail    = __( 'The plugin has been updated, but could not be reactivated. Please reactivate it manually.', 'ncoa-ads' );
+		$success = __( 'Plugin reactivated successfully.', 'ncoa-ads' );
+		echo is_wp_error( $activate ) ? esc_html( $fail ) : esc_html( $success );
+
 		return $result;
-
 	}
 }

@@ -16,7 +16,7 @@
  * Plugin Name:       NCOA Ads
  * Plugin URI:        https://ncoa.com.au/
  * Description:       Insert NCOA Display Ads on WordPress sites
- * Version:           1.1.6
+ * Version:           1.2.0
  * Author:            Rohan
  * Author URI:        https://ncoa.com.au/
  * License:           GPL-2.0+
@@ -177,30 +177,29 @@ function run_ncoa_ads() {
    add_filter('plugin_action_links', 'add_plugin_link', 10, 2);
 
    // Check for plugin updates
-   add_action('init', 'github_plugin_updater_ncoa_ads');
-   function github_plugin_updater_ncoa_ads() {
+   add_action('init', 'bitbucket_plugin_updater_ncoa_ads');
+   function bitbucket_plugin_updater_ncoa_ads() {
+      // Runs in wp-admin and in WP-Cron (where WordPress does its background update checks)
+      if (! is_admin() && ! wp_doing_cron()) {
+         return;
+      }
+
       require_once plugin_dir_path(__FILE__) . 'includes/class-ncoa-ads-updater.php';
 
-      if ( ! defined( 'WP_GITHUB_FORCE_UPDATE' ) ) {
-         define('WP_GITHUB_FORCE_UPDATE', true);
-      }
-      
-      if (is_admin()) {
-         $config = array(
-            'slug' => plugin_basename(__FILE__), // this is the slug of your plugin
-            'proper_folder_name' => 'ncoa-ads', // this is the name of the folder your plugin lives in
-            'api_url' => 'https://api.github.com/repos/rohangardiner/ncoa-ads', // the GitHub API url of your GitHub repo
-            'raw_url' => 'https://raw.github.com/rohangardiner/ncoa-ads/main', // the GitHub raw url of your GitHub repo
-            'github_url' => 'https://github.com/rohangardiner/ncoa-ads', // the GitHub url of your GitHub repo
-            'zip_url' => 'https://github.com/rohangardiner/ncoa-ads/zipball/main', // the zip url of the GitHub repo
-            'sslverify' => true, // whether WP should check the validity of the SSL cert when getting an update, see https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/2 and https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/4 for details
-            'requires' => '6.0', // which version of WordPress does your plugin require?
-            'tested' => '6.8.1', // which version of WordPress is your plugin tested up to?
-            'readme' => 'README.md', // which file to use as the readme for the version number
-            'access_token' => '', // Access private repositories by authorizing under Plugins > GitHub Updates when this example plugin is installed
-         );
-         new WP_GitHub_Updater_Ncoa_Ads($config);
-      }
+      $config = array(
+         'slug' => plugin_basename(__FILE__), // ncoa-ads/ncoa-ads.php
+         'proper_folder_name' => 'ncoa-ads', // folder the plugin is installed in
+         'workspace' => 'ncoa-software', // Bitbucket workspace
+         'repo' => 'ncoa-ads', // Bitbucket repository
+         'branch' => 'main', // updates are taken from this branch's Version: header
+         'sslverify' => true,
+         'requires' => '6.0', // minimum WordPress version
+         'tested' => '6.8.1', // WordPress version tested up to
+         'readme' => 'README.md', // fallback for ~Current Version:x.y.z~
+         // Private repo: define('NCOA_ADS_BITBUCKET_TOKEN', '...') in wp-config.php
+         'access_token' => defined('NCOA_ADS_BITBUCKET_TOKEN') ? NCOA_ADS_BITBUCKET_TOKEN : '',
+      );
+      new Ncoa_Ads_Bitbucket_Updater($config);
    }
 }
 run_ncoa_ads();
